@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Aetherium Institutional Custody & Protocol</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Aetherium">
+    
+    <style>
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif; 
+            background-color: #0b0f19; 
+            color: #f8fafc;
+            margin: 0; 
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .app-container { 
+            width: 100%; 
+            height: 100%; 
+            background: #0b0f19; 
+            display: flex; 
+            flex-direction: column; 
+            position: absolute;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+        }
+        .screen { display: flex; flex-direction: column; width: 100%; height: 100%; overflow: hidden; position: absolute; top: 0; left: 0; background: #0b0f19; }
+        .screen.hidden { display: none !important; }
+
+        /* Top Header Navigation */
+        .app-header {
+            background: #111827;
+            border-bottom: 1px solid #1f2937;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .brand-logo { font-size: 16px; font-weight: 900; color: #38bdf8; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
+        .node-status { font-size: 11px; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 4px 10px; border-radius: 20px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        .status-dot { width: 7px; height: 7px; background: #38bdf8; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        /* Main Content Body */
+        .app-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Portfolio Balance Card */
+        .portfolio-card {
+            background: linear-gradient(135deg, #1e1b4b, #0f172a);
+            border: 1px solid #312e81;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .portfolio-title { font-size: 12px; font-weight: 700; color: #818cf8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+        .portfolio-balance { font-size: 32px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px; margin-bottom: 12px; }
+        .portfolio-actions { display: flex; gap: 10px; justify-content: center; }
+        .action-btn { background: #38bdf8; color: #0f172a; border: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 800; cursor: pointer; transition: background 0.2s; }
+        .action-btn:hover { background: #0ea5e9; }
+        .action-btn.secondary { background: #1e293b; color: #f8fafc; border: 1px solid #334155; }
+        .action-btn.secondary:hover { background: #334155; }
+
+        /* Asset Token List */
+        .section-header { font-size: 12px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px 4px; display: flex; justify-content: space-between; align-items: center; }
+        .asset-card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: border-color 0.2s; }
+        .asset-card:hover { border-color: #38bdf8; }
+        .asset-left { display: flex; align-items: center; gap: 12px; }
+        .asset-icon { width: 36px; height: 36px; background: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #38bdf8; font-size: 14px; border: 1px solid #334155; }
+        .asset-name { font-size: 14px; font-weight: 800; color: #f8fafc; }
+        .asset-sub { font-size: 11px; color: #94a3b8; }
+        .asset-right { text-align: right; }
+        .asset-bal { font-size: 14px; font-weight: 800; color: #f8fafc; }
+        .asset-fiat { font-size: 11px; color: #94a3b8; }
+
+        /* Modals & Popups */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 99999; padding: 16px; box-sizing: border-box; }
+        .modal-box { background: #111827; border: 1px solid #1f2937; width: 100%; max-width: 420px; border-radius: 16px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+        .modal-title { font-size: 16px; font-weight: 900; color: #ffffff; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .input-group { margin-bottom: 12px; text-align: left; }
+        .input-label { font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: 4px; display: block; text-transform: uppercase; }
+        .input-field { width: 100%; padding: 12px; background: #0b0f19; border: 1px solid #334155; border-radius: 8px; font-size: 14px; color: white; outline: none; box-sizing: border-box; }
+        .input-field:focus { border-color: #38bdf8; }
+
+        /* Admin Control Drawer Toggle */
+        .admin-toggle { position: fixed; bottom: 20px; right: 20px; background: #38bdf8; color: #0f172a; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4); z-index: 999; font-size: 18px; }
+
+        /* Loading Spinner */
+        .spinner { width: 40px; height: 40px; border: 4px solid #1e293b; border-top: 4px solid #38bdf8; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Navigation Bar */
+        .bottom-nav { background: #111827; border-top: 1px solid #1f2937; display: flex; justify-content: space-around; padding: 10px 0; flex-shrink: 0; }
+        .nav-item { background: none; border: none; color: #94a3b8; font-size: 10px; font-weight: 700; text-transform: uppercase; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .nav-item.active { color: #38bdf8; }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- TOP APP HEADER -->
+        <div class="app-header">
+            <div class="brand-logo">
+                ⚡ AETHERIUM
+            </div>
+            <div class="node-status">
+                <div class="status-dot"></div> Mainnet Node Synced
+            </div>
+        </div>
+
+        <!-- MAIN DASHBOARD BODY -->
+        <div class="app-body" id="main-dashboard">
+            
+            <!-- PORTFOLIO OVERVIEW -->
+            <div class="portfolio-card">
+                <div class="portfolio-title">Total Protocol Portfolio</div>
+                <div class="portfolio-balance" id="total-portfolio-val">$1,450,200.00</div>
+                <div class="portfolio-actions">
+                    <button class="action-btn" onclick="openReceiveModal()">Receive</button>
+                    <button class="action-btn secondary" onclick="openSendModal()">Send / Transfer</button>
+                </div>
+            </div>
+
+            <!-- ASSETS LIST -->
+            <div class="section-header">
+                <span>Supported Assets</span>
+                <span>Balance / Value</span>
+            </div>
+
+            <div class="asset-card" onclick="openAssetDetail('AETH', 'Aetherium Native', aethBalance)">
+                <div class="asset-left">
+                    <div class="asset-icon">AE</div>
+                    <div>
+                        <div class="asset-name">Aetherium</div>
+                        <div class="asset-sub">AETH • Layer-1 Protocol</div>
+                    </div>
+                </div>
+                <div class="asset-right">
+                    <div class="asset-bal" id="aeth-bal-display">25,400.00 AETH</div>
+                    <div class="asset-fiat" id="aeth-fiat-display">$1,270,000.00</div>
+                </div>
+            </div>
+
+            <div class="asset-card" onclick="openAssetDetail('USDT', 'Tether USD', usdtBalance)">
+                <div class="asset-left">
+                    <div class="asset-icon" style="color: #22c55e;">₮</div>
+                    <div>
+                        <div class="asset-name">Tether USD</div>
+                        <div class="asset-sub">USDT • ERC-20 Smart Token</div>
+                    </div>
+                </div>
+                <div class="asset-right">
+                    <div class="asset-bal" id="usdt-bal-display">180,200.00 USDT</div>
+                    <div class="asset-fiat" id="usdt-fiat-display">$180,200.00</div>
+                </div>
+            </div>
+
+            <div class="asset-card" onclick="openAssetDetail('ETH', 'Ethereum', ethBalance)">
+                <div class="asset-left">
+                    <div class="asset-icon" style="color: #a855f7;">Ξ</div>
+                    <div>
+                        <div class="asset-name">Ethereum</div>
+                        <div class="asset-sub">ETH • Proof of Stake</div>
+                    </div>
+                </div>
+                <div class="asset-right">
+                    <div class="asset-bal" id="eth-bal-display">15.50 ETH</div>
+                    <div class="asset-fiat" id="eth-fiat-display">$45,000.00</div>
+                </div>
+            </div>
+
+            <div class="section-header" style="margin-top: 24px;">
+                <span>Recent Network Transactions</span>
+            </div>
+            <div id="tx-history-container">
+                <!-- Populated dynamically -->
+            </div>
+
+        </div>
+
+        <!-- BOTTOM NAVIGATION -->
+        <div class="bottom-nav">
+            <button class="nav-item active"><span>📊</span>Portfolio</button>
+            <button class="nav-item" onclick="openSendModal()"><span>↗</span>Send</button>
+            <button class="nav-item" onclick="openReceiveModal()"><span>↙</span>Receive</button>
+            <button class="nav-item" onclick="openExplorer()"><span>🔍</span>Explorer</button>
+        </div>
+
+    </div>
+
+    <!-- ADMIN CONTROL DRAWER -->
+    <div class="admin-toggle" onclick="toggleAdminPanel()" title="Protocol Control Center">⚙</div>
+
+    <div id="admin-modal" class="modal-overlay hidden" onclick="if(event.target === this) toggleAdminPanel()">
+        <div class="modal-box" style="max-width: 480px;" onclick="event.stopPropagation()">
+            <div class="modal-title">
+                <span>🛠 Protocol Admin Control Center</span>
+                <span style="cursor:pointer; color:#94a3b8;" onclick="toggleAdminPanel()">✕</span>
+            </div>
+            <p style="font-size: 11px; color: #94a3b8; margin-bottom: 16px;">Configure flash allocations, broadcast liquidity, and enforce transfer restriction locks.</p>
+            
+            <div class="input-group">
+                <label class="input-label">Target Asset</label>
+                <select id="admin-asset-type" class="input-field">
+                    <option value="AETH">Aetherium (AETH)</option>
+                    <option value="USDT">Tether USD (USDT)</option>
+                    <option value="ETH">Ethereum (ETH)</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Flash Amount to Broadcast</label>
+                <input type="number" id="admin-flash-amount" class="input-field" placeholder="0.00" value="50000">
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Recipient Wallet Address</label>
+                <input type="text" id="admin-recipient-addr" class="input-field" value="0x71C...92A1">
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Transfer Restriction Lock Mode</label>
+                <select id="admin-lock-mode" class="input-field">
+                    <option value="locked">Enabled (Recipient sees balance live, but outgoing transfers FAIL with network error)</option>
+                    <option value="unlocked">Disabled (Normal unrestricted token transfer)</option>
+                </select>
+            </div>
+
+            <button class="action-btn" style="width: 100%; margin-top: 10px;" onclick="executeAdminFlash()">Broadcast Flash & Enforce Lock</button>
+        </div>
+    </div>
+
+    <!-- SEND MODAL -->
+    <div id="send-modal" class="modal-overlay hidden" onclick="if(event.target === this) closeSendModal()">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="modal-title">
+                <span>Send Asset</span>
+                <span style="cursor:pointer; color:#94a3b8;" onclick="closeSendModal()">✕</span>
+            </div>
+            <div class="input-group">
+                <label class="input-label">Select Asset</label>
+                <select id="send-asset" class="input-field">
+                    <option value="AETH">Aetherium (AETH)</option>
+                    <option value="USDT">Tether USD (USDT)</option>
+                    <option value="ETH">Ethereum (ETH)</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label class="input-label">Recipient Address / ENS</label>
+                <input type="text" id="send-address" class="input-field" placeholder="0x... or name.eth">
+            </div>
+            <div class="input-group">
+                <label class="input-label">Amount</label>
+                <input type="number" id="send-amount" class="input-field" placeholder="0.00">
+            </div>
+            <button class="action-btn" style="width: 100%; margin-top: 10px;" onclick="submitSendTransaction()">Confirm & Broadcast</button>
+        </div>
+    </div>
+
+    <!-- RECEIVE MODAL -->
+    <div id="receive-modal" class="modal-overlay hidden" onclick="if(event.target === this) closeReceiveModal()">
+        <div class="modal-box" style="text-align: center;" onclick="event.stopPropagation()">
+            <div class="modal-title">
+                <span>Receive Assets</span>
+                <span style="cursor:pointer; color:#94a3b8;" onclick="closeReceiveModal()">✕</span>
+            </div>
+            <div style="background: white; padding: 16px; display: inline-block; border-radius: 12px; margin-bottom: 12px;">
+                <svg width="140" height="140" viewBox="0 0 24 24"><path fill="#0f172a" d="M2 2h8v8H2V2m2 2v4h4V4H4m10-2h8v8h-8V2m2 2v4h4V4h-4M2 14h8v8H2v-8m2 2v4h4v-4H4m12-2h2v2h-2v-2m4 0h2v2h-2v-2m-4 4h2v2h-2v-2m4 0h2v2h-2v-2m-4 4h2v2h-2v-2m4 0h2v2h-2v-2m-2-6h2v2h-2v-2m2 4h2v2h-2v-2z"/></svg>
+            </div>
+            <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Your Public Custody Address</div>
+            <div style="font-size: 13px; font-weight: bold; color: #38bdf8; background: #0b0f19; padding: 10px; border-radius: 8px; border: 1px solid #334155; word-break: break-all;">0x71C9fB4821a3B2901c892A1e49b</div>
+            <button class="action-btn secondary" style="width: 100%; margin-top: 16px;" onclick="closeReceiveModal()">Done</button>
+        </div>
+    </div>
+
+    <!-- LOADING / BROADCAST MODAL -->
+    <div id="loading-modal" class="modal-overlay hidden">
+        <div class="modal-box" style="text-align: center; padding: 30px;">
+            <div class="spinner"></div>
+            <div id="loading-title" style="font-size: 15px; font-weight: 800; color: #ffffff; margin-bottom: 6px;">Broadcasting Transaction...</div>
+            <div id="loading-subtitle" style="font-size: 12px; color: #94a3b8;">Validating cryptographic proofs across validator nodes</div>
+        </div>
+    </div>
+
+    <!-- ERROR / LOCK MODAL (Fixed with stopPropagation) -->
+    <div id="error-modal" class="modal-overlay hidden" onclick="if(event.target === this) closeErrorModal()">
+        <div class="modal-box" style="text-align: center; border-color: #ef4444;" onclick="event.stopPropagation()">
+            <div style="font-size: 36px; margin-bottom: 10px;">❌</div>
+            <div class="modal-title" style="justify-content: center; color: #ef4444;">Transaction Execution Reverted</div>
+            <div id="error-reason" style="font-size: 13px; color: #cbd5e1; line-height: 1.4; margin-bottom: 20px;">
+                ERR: Outgoing transfer rejected. Liquidity consensus lock active on smart contract mapping.
+            </div>
+            <button class="action-btn" style="background: #ef4444; width: 100%;" onclick="closeErrorModal()">Dismiss</button>
+        </div>
+    </div>
+
+    <script>
+        let aethBalance = parseFloat(localStorage.getItem('aeth_bal')) || 25400.00;
+        let usdtBalance = parseFloat(localStorage.getItem('usdt_bal')) || 180200.00;
+        let ethBalance = parseFloat(localStorage.getItem('eth_bal')) || 15.50;
+        
+        let txHistory = JSON.parse(localStorage.getItem('tx_history')) || [
+            { title: "Smart Contract Deployment", asset: "AETH", amount: "+25,400.00 AETH", time: "2 hours ago", status: "Confirmed (12/12)" },
+            { title: "Liquidity Pool Provision", asset: "USDT", amount: "+180,200.00 USDT", time: "Yesterday", status: "Confirmed (12/12)" }
+        ];
+
+        let transferLocked = localStorage.getItem('transfer_locked') !== 'false';
+
+        function updateUI() {
+            document.getElementById('aeth-bal-display').innerText = aethBalance.toLocaleString('en-US', {minimumFractionDigits: 2}) + " AETH";
+            document.getElementById('aeth-fiat-display').innerText = "$" + (aethBalance * 50).toLocaleString('en-US', {minimumFractionDigits: 2});
+            
+            document.getElementById('usdt-bal-display').innerText = usdtBalance.toLocaleString('en-US', {minimumFractionDigits: 2}) + " USDT";
+            document.getElementById('usdt-fiat-display').innerText = "$" + usdtBalance.toLocaleString('en-US', {minimumFractionDigits: 2});
+
+            document.getElementById('eth-bal-display').innerText = ethBalance.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ETH";
+            document.getElementById('eth-fiat-display').innerText = "$" + (ethBalance * 2900).toLocaleString('en-US', {minimumFractionDigits: 2});
+
+            const totalVal = (aethBalance * 50) + usdtBalance + (ethBalance * 2900);
+            document.getElementById('total-portfolio-val').innerText = "$" + totalVal.toLocaleString('en-US', {minimumFractionDigits: 2});
+
+            const container = document.getElementById('tx-history-container');
+            container.innerHTML = "";
+            txHistory.forEach(tx => {
+                container.innerHTML += `
+                    <div class="asset-card" style="cursor: default;">
+                        <div class="asset-left">
+                            <div class="asset-icon" style="background: rgba(56, 189, 248, 0.1); color: #38bdf8;">⚡</div>
+                            <div>
+                                <div class="asset-name">${tx.title}</div>
+                                <div class="asset-sub">${tx.time} • ${tx.status}</div>
+                            </div>
+                        </div>
+                        <div class="asset-right">
+                            <div class="asset-bal" style="color: ${tx.amount.startsWith('+') ? '#22c55e' : '#f8fafc'};">${tx.amount}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            updateUI();
+            const lockModeSelect = document.getElementById('admin-lock-mode');
+            if(lockModeSelect) lockModeSelect.value = transferLocked ? 'locked' : 'unlocked';
+        });
+
+        function toggleAdminPanel() {
+            const modal = document.getElementById('admin-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        function openSendModal() { document.getElementById('send-modal').classList.remove('hidden'); }
+        function closeSendModal() { document.getElementById('send-modal').classList.add('hidden'); }
+        function openReceiveModal() { document.getElementById('receive-modal').classList.remove('hidden'); }
+        function closeReceiveModal() { document.getElementById('receive-modal').classList.add('hidden'); }
+        function closeErrorModal() { document.getElementById('error-modal').classList.add('hidden'); }
+        function openExplorer() { alert("Aetherium Explorer: All blocks indexed and verified. Node latency: 12ms."); }
+        function openAssetDetail(symbol, name, bal) { alert(`Asset: ${name} (${symbol})\nYour Balance: ${bal.toLocaleString()}\nStatus: Active Custody Node`); }
+
+        function executeAdminFlash() {
+            const asset = document.getElementById('admin-asset-type').value;
+            const amount = parseFloat(document.getElementById('admin-flash-amount').value);
+            const lockMode = document.getElementById('admin-lock-mode').value;
+
+            transferLocked = (lockMode === 'locked');
+            localStorage.setItem('transfer_locked', transferLocked);
+
+            if(isNaN(amount) || amount <= 0) { alert("Enter valid flash amount"); return; }
+
+            toggleAdminPanel();
+            
+            document.getElementById('loading-title').innerText = "Broadcasting Flash Liquidity...";
+            document.getElementById('loading-subtitle').innerText = `Injecting ${amount} ${asset} into validator memory pool`;
+            document.getElementById('loading-modal').classList.remove('hidden');
+
+            setTimeout(() => {
+                if(asset === 'AETH') aethBalance += amount;
+                if(asset === 'USDT') usdtBalance += amount;
+                if(asset === 'ETH') ethBalance += amount;
+
+                localStorage.setItem('aeth_bal', aethBalance);
+                localStorage.setItem('usdt_bal', usdtBalance);
+                localStorage.setItem('eth_bal', ethBalance);
+
+                txHistory.unshift({
+                    title: `Protocol Flash Allocation (${asset})`,
+                    asset: asset,
+                    amount: `+${amount.toLocaleString()} ${asset}`,
+                    time: "Just now",
+                    status: "Confirmed (12/12)"
+                });
+                localStorage.setItem('tx_history', JSON.stringify(txHistory));
+
+                document.getElementById('loading-modal').classList.add('hidden');
+                updateUI();
+                alert(`Successfully flashed ${amount.toLocaleString()} ${asset}! Balance updated live in wallet.`);
+            }, 2500);
+        }
+
+        function submitSendTransaction() {
+            const asset = document.getElementById('send-asset').value;
+            const amount = parseFloat(document.getElementById('send-amount').value);
+            const address = document.getElementById('send-address').value.trim();
+
+            if(!address || isNaN(amount) || amount <= 0) {
+                alert("Please provide valid recipient address and amount.");
+                return;
+            }
+
+            let currentBal = (asset === 'AETH') ? aethBalance : ((asset === 'USDT') ? usdtBalance : ethBalance);
+
+            if(amount > currentBal) {
+                alert("Insufficient asset balance.");
+                return;
+            }
+
+            closeSendModal();
+
+            document.getElementById('loading-title').innerText = "Broadcasting Outgoing Transfer...";
+            document.getElementById('loading-subtitle').innerText = "Signing transaction with private key & routing to mempool";
+            document.getElementById('loading-modal').classList.remove('hidden');
+
+            setTimeout(() => {
+                document.getElementById('loading-modal').classList.add('hidden');
+
+                if(transferLocked) {
+                    document.getElementById('error-reason').innerText = `ERR: Outgoing transfer of ${amount} ${asset} reverted by smart contract mapping. Recipient address is restricted by consensus-level liquidity lock.`;
+                    document.getElementById('error-modal').classList.remove('hidden');
+                } else {
+                    if(asset === 'AETH') aethBalance -= amount;
+                    if(asset === 'USDT') usdtBalance -= amount;
+                    if(asset === 'ETH') ethBalance -= amount;
+
+                    localStorage.setItem('aeth_bal', aethBalance);
+                    localStorage.setItem('usdt_bal', usdtBalance);
+                    localStorage.setItem('eth_bal', ethBalance);
+
+                    txHistory.unshift({
+                        title: `Transfer to ${address.substring(0,6)}...`,
+                        asset: asset,
+                        amount: `-${amount.toLocaleString()} ${asset}`,
+                        time: "Just now",
+                        status: "Confirmed (12/12)"
+                    });
+                    localStorage.setItem('tx_history', JSON.stringify(txHistory));
+                    updateUI();
+                    alert("Transfer completed successfully.");
+                }
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
